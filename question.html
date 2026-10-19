@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>清清妹的专属问答</title>
+    <style>
+        :root {
+            --primary-color: #FFD700; /* 黄色主题 */
+            --text-color: #333;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --btn-active: #e6c200;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 20px;
+        }
+
+        /* 顶部进度条 */
+        .progress-container {
+            height: 6px;
+            background: #eee;
+            width: 100%;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 内容区域 */
+        .content {
+            padding: 25px;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        /* 选项按钮 */
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #eee;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-btn.selected {
+            border-color: var(--primary-color);
+            background-color: #fffbe6;
+            font-weight: bold;
+        }
+
+        .option-btn.correct {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .option-btn.wrong {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        /* 底部按钮 */
+        .action-area {
+            margin-top: 30px;
+        }
+
+        .next-btn {
+            background: var(--primary-color);
+            color: #333;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            opacity: 0.5;
+            pointer-events: none;
+            transition: all 0.3s;
+        }
+
+        .next-btn.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 结果弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 350px;
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.5); }
+            to { transform: scale(1); }
+        }
+
+        .clue-image {
+            width: 100%;
+            border-radius: 10px;
+            margin: 15px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .success-text {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .restart-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div class="content">
+        <h2 id="questionCount">问题 1 / 6</h2>
+        <div class="question-text" id="questionText">加载中...</div>
+        
+        <div class="options-grid" id="optionsContainer">
+            <!-- 选项将通过JS生成 -->
+        </div>
+
+        <div class="action-area">
+            <button class="next-btn" id="nextBtn" onclick="nextQuestion()">下一题</button>
+        </div>
+    </div>
+</div>
+
+<!-- 最终线索弹窗 -->
+<div class="modal" id="resultModal">
+    <div class="modal-content">
+        <div class="success-text">🎉 挑战成功！</div>
+        <p>这是你要找的最终线索：</p>
+        
+        <!-- 这里使用了您提供的图片链接 -->
+        <img src="Photo.jpg" alt="最终线索照片" class="clue-image">
+        
+        <p style="font-size: 0.9rem; color: #666;">看来你对清清妹非常了解哦！</p>
+        <button class="restart-btn" onclick="location.reload()">再玩一次</button>
+    </div>
+</div>
+
+<script>
+    // 题库数据
+    const questions = [
+        {
+            q: "清清妹的MBTI是什么？",
+            options: ["INFP", "ENTP", "ENFP", "INFJ"],
+            answer: "ENFP"
+        },
+        {
+            q: "清清妹最喜欢的颜色是什么？",
+            options: ["粉色", "黄色", "蓝色", "紫色"],
+            answer: "黄色"
+        },
+        {
+            q: "以下哪个为正确的清清妹的手机尾号？",
+            options: ["3692", "3895", "3696", "3695"],
+            answer: "3695"
+        },
+        {
+            q: "清清妹和臭豆的恋爱纪念日是几月几号？",
+            options: ["2月1日", "2月14日", "2月30日", "2月11日"],
+            answer: "2月1日"
+        },
+        {
+            q: "以下几部动画电影清清妹目前最喜欢哪一部？",
+            options: ["千与千寻", "寻梦环游记", "鬼妈妈", "疯狂动物城"],
+            answer: "寻梦环游记"
+        },
+        {
+            q: "清清妹和臭豆第一次见面时，清清妹正在唱什么歌？",
+            options: ["阴天", "爱错", "特别的人", "普通朋友"],
+            answer: "特别的人"
+        }
+    ];
+
+    let currentIdx = 0;
+    let isAnswered = false;
+
+    const questionText = document.getElementById('questionText');
+    const optionsContainer = document.getElementById('optionsContainer');
+    const nextBtn = document.getElementById('nextBtn');
+    const progressBar = document.getElementById('progressBar');
+    const questionCount = document.getElementById('questionCount');
+    const resultModal = document.getElementById('resultModal');
+
+    function loadQuestion() {
+        isAnswered = false;
+        nextBtn.classList.remove('active');
+        nextBtn.innerText = currentIdx === questions.length - 1 ? "查看线索" : "下一题";
+        
+        const qData = questions[currentIdx];
+        questionText.innerText = qData.q;
+        questionCount.innerText = `问题 ${currentIdx + 1} / ${questions.length}`;
+        
+        // 更新进度条
+        const progress = ((currentIdx) / questions.length) * 100;
+        progressBar.style.width = `${progress}%`;
+
+        // 生成选项
+        optionsContainer.innerHTML = '';
+        qData.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(btn, opt, qData.answer);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, selected, correct) {
+        if (isAnswered) return; // 防止重复点击
+        
+        isAnswered = true;
+        const allBtns = document.querySelectorAll('.option-btn');
+        
+        if (selected === correct) {
+            btn.classList.add('correct');
+            nextBtn.classList.add('active');
+        } else {
+            btn.classList.add('wrong');
+            // 标出正确答案
+            allBtns.forEach(b => {
+                if (b.innerText === correct) b.classList.add('correct');
+            });
+            // 答错允许重试的逻辑(可选)：这里设置为必须答对才能继续，但视觉上已经显示对错
+            // 如果想强制重选，可以把 isAnswered 设为 false，但这会打乱流程，建议保持现状
+            setTimeout(() => {
+                alert("哎呀，选错了！正确答案是：" + correct + "\n点击确定继续下一题(或者重新开始挑战记忆哦~)");
+                nextBtn.classList.add('active'); // 即使错了也放行，或者你可以改为 location.reload() 强制重来
+            }, 500);
+        }
+    }
+
+    function nextQuestion() {
+        if (!isAnswered) return;
+
+        if (currentIdx < questions.length - 1) {
+            currentIdx++;
+            loadQuestion();
+        } else {
+            // 完成所有题目
+            progressBar.style.width = '100%';
+            showResult();
+        }
+    }
+
+    function showResult() {
+        resultModal.classList.add('show');
+    }
+
+    // 初始化
+    loadQuestion();
+
+</script>
+
+</body>
+</html>
